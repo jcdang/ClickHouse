@@ -95,13 +95,12 @@ struct HashTableCell
 
     /// Create a cell with the given key / key and value.
     HashTableCell(const Key & key_, const State &) : key(key_) {}
-/// HashTableCell(const value_type & value_, const State & state) : key(value_) {}
 
     /// Get what the value_type of the container will be.
-    value_type & getValueMutable() { return key; }
     const value_type & getValue() const { return key; }
 
     /// Get the key.
+    Key & getKey() { return key; }
     static const Key & getKey(const value_type & value) { return value; }
 
     /// Are the keys at the cells equal?

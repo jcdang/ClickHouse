@@ -195,8 +195,6 @@ struct AggregationMethodString
     using Data = TData;
     using Key = typename Data::key_type;
     using Mapped = typename Data::mapped_type;
-    using iterator = typename Data::iterator;
-    using const_iterator = typename Data::const_iterator;
 
     Data data;
 
@@ -223,8 +221,6 @@ struct AggregationMethodFixedString
     using Data = TData;
     using Key = typename Data::key_type;
     using Mapped = typename Data::mapped_type;
-    using iterator = typename Data::iterator;
-    using const_iterator = typename Data::const_iterator;
 
     Data data;
 
@@ -253,8 +249,6 @@ struct AggregationMethodSingleLowCardinalityColumn : public SingleColumnMethod
     using Data = typename Base::Data;
     using Key = typename Base::Key;
     using Mapped = typename Base::Mapped;
-    using iterator = typename Base::iterator;
-    using const_iterator = typename Base::const_iterator;
 
     using Base::data;
 
@@ -364,8 +358,6 @@ struct AggregationMethodSerialized
     using Data = TData;
     using Key = typename Data::key_type;
     using Mapped = typename Data::mapped_type;
-    using iterator = typename Data::iterator;
-    using const_iterator = typename Data::const_iterator;
 
     Data data;
 

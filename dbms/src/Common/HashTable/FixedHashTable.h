@@ -28,7 +28,6 @@ struct FixedHashTableCell
     {
         Key key;
 
-        value_type & getValueMutable() { return key; }
         const value_type & getValue() const { return key; }
         void update(Key && key_, FixedHashTableCell *) { key = key_; }
     };
@@ -133,6 +132,7 @@ protected:
         }
 
         auto getPtr() const { return ptr; }
+        Key getKey() const { return ptr - container->buf; }
         size_t getHash() const { return ptr - container->buf; }
         size_t getCollisionChainLength() const { return 0; }
         typename cell_type::CellExt cell;
