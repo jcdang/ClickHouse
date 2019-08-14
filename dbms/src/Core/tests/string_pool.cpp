@@ -209,7 +209,7 @@ int main(int argc, char ** argv)
 
         for (Vec::iterator it = vec.begin(); it != vec.end(); ++it)
         {
-            RefsHashMap::iterator inserted_it;
+            RefsHashMap::MappedPtr inserted_it;
             bool inserted;
             set.emplace(StringRef(*it), inserted_it, inserted);
         }
@@ -236,7 +236,7 @@ int main(int argc, char ** argv)
 
         for (Vec::iterator it = vec.begin(); it != vec.end(); ++it)
         {
-            RefsHashMap::iterator inserted_it;
+            RefsHashMap::MappedPtr inserted_it;
             bool inserted;
             set.emplace(StringRef(pool.insert(it->data(), it->size()), it->size()), inserted_it, inserted);
         }

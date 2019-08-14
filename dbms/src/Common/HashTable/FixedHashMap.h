@@ -11,6 +11,8 @@ struct FixedHashMapCell
     using State = TState;
 
     using value_type = PairNoInit<Key, Mapped>;
+    using mapped_type = TMapped;
+
     Mapped mapped;
     bool full;
 
@@ -23,7 +25,7 @@ struct FixedHashMapCell
     bool isZero(const State &) const { return !full; }
     void setZero() { full = false; }
     static constexpr bool need_zero_value_storage = false;
-    void setMapped(const value_type & value) { mapped = value.getSecond(); }
+    mapped_type * getMapped() { return &mapped; }
 
     /// Similar to FixedHashSetCell except that we need to contain a pointer to the Mapped field.
     ///  Note that we have to assemble a continuous layout for the value_type on each call of getValue().
@@ -54,9 +56,9 @@ public:
     using Base = FixedHashTable<Key, FixedHashMapCell<Key, Mapped>, Allocator>;
     using Self = FixedHashMap;
     using key_type = Key;
-    using mapped_type = Mapped;
     using Cell = typename Base::cell_type;
     using value_type = typename Cell::value_type;
+    using mapped_type = typename Cell::Mapped;
 
     using Base::Base;
 
@@ -71,10 +73,10 @@ public:
     {
         for (auto it = this->begin(), end = this->end(); it != end; ++it)
         {
-            decltype(it) res_it;
+            typename Self::MappedPtr res_it;
             bool inserted;
             that.emplace(it->getFirst(), res_it, inserted, it.getHash());
-            func(res_it->getSecond(), it->getSecond(), inserted);
+            func(*res_it, it->getSecond(), inserted);
         }
     }
 
@@ -112,12 +114,12 @@ public:
 
     mapped_type & ALWAYS_INLINE operator[](Key x)
     {
-        typename Base::iterator it;
+        typename Base::MappedPtr it;
         bool inserted;
         this->emplace(x, it, inserted);
         if (inserted)
-            new (&it->getSecond()) mapped_type();
+            new (it) mapped_type();
 
-        return it->getSecond();
+        return *it;
     }
 };

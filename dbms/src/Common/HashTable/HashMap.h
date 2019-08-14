@@ -41,8 +41,9 @@ struct HashMapCell
 {
     using Mapped = TMapped;
     using State = TState;
-
     using value_type = PairNoInit<Key, Mapped>;
+    using mapped_type = Mapped;
+
     value_type value;
 
     HashMapCell() {}
@@ -76,7 +77,8 @@ struct HashMapCell
     /// Whether the cell was deleted.
     bool isDeleted() const { return false; }
 
-    void setMapped(const value_type & value_) { value.second = value_.second; }
+    mapped_type * getMapped() { return &value.second; }
+    const mapped_type * getMapped() const { return &value.second; }
 
     /// Serialization, in binary and text form.
     void write(DB::WriteBuffer & wb) const
@@ -137,8 +139,9 @@ class HashMapTable : public HashTable<Key, Cell, Hash, Grower, Allocator>
 public:
     using Self = HashMapTable;
     using key_type = Key;
-    using mapped_type = typename Cell::Mapped;
     using value_type = typename Cell::value_type;
+    using mapped_type = typename Cell::Mapped;
+    using MappedPtr = mapped_type *;
 
     using HashTable<Key, Cell, Hash, Grower, Allocator>::HashTable;
 
@@ -153,10 +156,10 @@ public:
     {
         for (auto it = this->begin(), end = this->end(); it != end; ++it)
         {
-            decltype(it) res_it;
+            typename Self::MappedPtr res_it;
             bool inserted;
             that.emplace(it->getFirst(), res_it, inserted, it.getHash());
-            func(res_it->getSecond(), it->getSecond(), inserted);
+            func(*res_it, it->getSecond(), inserted);
         }
     }
 
@@ -194,7 +197,7 @@ public:
 
     mapped_type & ALWAYS_INLINE operator[](Key x)
     {
-        typename HashMapTable::iterator it;
+        typename HashMapTable::MappedPtr it;
         bool inserted;
         this->emplace(x, it, inserted);
 
@@ -213,9 +216,9 @@ public:
           *  the compiler can not guess about this, and generates the `load`, `increment`, `store` code.
           */
         if (inserted)
-            new(&it->getSecond()) mapped_type();
+            new (it) mapped_type();
 
-        return it->getSecond();
+        return *it;
     }
 };
 

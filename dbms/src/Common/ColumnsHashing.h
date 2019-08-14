@@ -341,7 +341,7 @@ struct HashMethodSingleLowCardinalityColumn : public SingleColumnMethod
         auto key_ptr = getKeyPtr(row_, pool);
 
         bool inserted = false;
-        typename Data::iterator it;
+        typename Data::MappedPtr it;
         if (saved_hash)
             data.emplacePtr(key_ptr, it, inserted, saved_hash[row]);
         else
@@ -353,10 +353,10 @@ struct HashMethodSingleLowCardinalityColumn : public SingleColumnMethod
         {
             if (inserted)
             {
-                new (&it->getSecond()) Mapped();
+                new (it) Mapped();
             }
-            mapped_cache[row] = it->getSecond();
-            return EmplaceResult(it->getSecond(), mapped_cache[row], inserted);
+            mapped_cache[row] = *it;
+            return EmplaceResult(*it, mapped_cache[row], inserted);
         }
         else
             return EmplaceResult(inserted);

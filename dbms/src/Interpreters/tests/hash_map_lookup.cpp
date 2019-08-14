@@ -46,22 +46,23 @@ template <typename Map>
 void NO_INLINE bench(const std::vector<UInt16> & data, const char * name)
 {
     Map map;
-    typename Map::iterator it;
-    bool inserted;
 
     Stopwatch watch;
     for (size_t i = 0, size = data.size(); i < size; ++i)
     {
+        typename Map::MappedPtr it;
+        bool inserted;
+
         map.emplace(data[i], it, inserted);
         if (inserted)
-            it->getSecond() = 1;
+            *it = 1;
         else
-            ++it->getSecond();
+            ++*it;
     }
 
     for (size_t i = 0, size = data.size(); i < size; ++i)
     {
-        it = map.find(data[i]);
+        auto it = map.find(data[i]);
         ++it->getSecond();
     }
     watch.stop();
@@ -77,7 +78,7 @@ template <typename Map>
 void insert(Map & map, StringRef & k)
 {
     bool inserted;
-    typename Map::iterator it;
+    typename Map::MappedPtr it;
     map.emplace(k, it, inserted, nullptr);
     if (inserted)
         *it = 1;

@@ -213,7 +213,7 @@ public:
         emplace(Cell::getKey(x), res.first, res.second);
 
         if (res.second)
-            res.first.ptr->setMapped(x);
+            setMapped(res.first->getMapped(), x);
 
         return res;
     }

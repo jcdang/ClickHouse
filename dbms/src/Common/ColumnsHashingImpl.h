@@ -165,19 +165,19 @@ protected:
             }
         }
 
-        typename Data::iterator it;
+        typename Data::MappedPtr it;
         bool inserted = false;
         data.emplacePtr(key_ptr, it, inserted);
 
         [[maybe_unused]] Mapped * cached = nullptr;
         if constexpr (has_mapped)
-            cached = &it->getSecond();
+            cached = it;
 
         if (inserted)
         {
             if constexpr (has_mapped)
             {
-                new(&it->getSecond()) Mapped();
+                new (it) Mapped();
             }
         }
 
@@ -189,7 +189,7 @@ protected:
             if constexpr (has_mapped)
             {
                 cache.value.first = *key_ptr;
-                cache.value.second = it->getSecond();
+                cache.value.second = *it;
                 cached = &cache.value.second;
             }
             else
@@ -199,7 +199,7 @@ protected:
         }
 
         if constexpr (has_mapped)
-            return EmplaceResult(it->getSecond(), *cached, inserted);
+            return EmplaceResult(*it, *cached, inserted);
         else
             return EmplaceResult(inserted);
     }

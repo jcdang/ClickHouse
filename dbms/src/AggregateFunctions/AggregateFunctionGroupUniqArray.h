@@ -220,7 +220,7 @@ public:
             return;
 
         bool inserted;
-        State::Set::iterator it;
+        State::Set::MappedPtr it;
         auto key_ptr = getKeyPtr(*columns[0], row_num, *arena);
         set.emplacePtr(key_ptr, it, inserted);
     }
@@ -231,7 +231,7 @@ public:
         auto & rhs_set = this->data(rhs).value;
 
         bool inserted;
-        State::Set::iterator it;
+        State::Set::MappedPtr it;
         for (auto & rhs_elem : rhs_set)
         {
             if (limit_num_elems && cur_set.size() >= max_elems)

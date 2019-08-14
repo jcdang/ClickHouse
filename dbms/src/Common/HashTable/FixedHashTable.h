@@ -8,6 +8,7 @@ struct FixedHashTableCell
     using State = TState;
 
     using value_type = Key;
+    using mapped_type = void;
     bool full;
 
     FixedHashTableCell() {}
@@ -16,7 +17,7 @@ struct FixedHashTableCell
     bool isZero(const State &) const { return !full; }
     void setZero() { full = false; }
     static constexpr bool need_zero_value_storage = false;
-    void setMapped(const value_type & /*value*/) {}
+    void * getMapped() { return this; }
 
     /// This Cell is only stored inside an iterator. It's used to accomodate the fact
     ///  that the iterator based API always provide a reference to a continuous memory
@@ -142,6 +143,7 @@ protected:
 public:
     using key_type = Key;
     using value_type = typename Cell::value_type;
+    using MappedPtr = typename Cell::mapped_type *;
 
     size_t hash(const Key & x) const { return x; }
 
@@ -263,9 +265,9 @@ public:
 
 
 protected:
-    void ALWAYS_INLINE emplaceImpl(Key x, iterator & it, bool & inserted)
+    void ALWAYS_INLINE emplaceImpl(Key x, MappedPtr & it, bool & inserted)
     {
-        it = iterator(this, &buf[x]);
+        it = buf[x].getMapped();
 
         if (!buf[x].isZero(*this))
         {
@@ -280,30 +282,30 @@ protected:
 
 
 public:
-    std::pair<iterator, bool> ALWAYS_INLINE insert(const value_type & x)
+    std::pair<MappedPtr, bool> ALWAYS_INLINE insert(const value_type & x)
     {
-        std::pair<iterator, bool> res;
+        std::pair<MappedPtr, bool> res;
         emplaceImpl(Cell::getKey(x), res.first, res.second);
         if (res.second)
-            res.first.ptr->setMapped(x);
+            setMapped(res.first, x);
 
         return res;
     }
 
 
-    void ALWAYS_INLINE emplace(Key x, iterator & it, bool & inserted) { emplaceImpl(x, it, inserted); }
-    void ALWAYS_INLINE emplace(Key x, iterator & it, bool & inserted, size_t) { emplaceImpl(x, it, inserted); }
+    void ALWAYS_INLINE emplace(Key x, MappedPtr & it, bool & inserted) { emplaceImpl(x, it, inserted); }
+    void ALWAYS_INLINE emplace(Key x, MappedPtr & it, bool & inserted, size_t) { emplaceImpl(x, it, inserted); }
 
     // FixedHashTable doesn't store references to the keys, so it doesn't care
     // about key persistence.
     template <typename KeyPtr>
-    void emplacePtr(KeyPtr && key_ptr, iterator & it, bool & inserted)
+    void emplacePtr(KeyPtr && key_ptr, MappedPtr & it, bool & inserted)
     {
         emplace(*key_ptr, it, inserted);
     }
 
     template <typename KeyPtr>
-    void emplacePtr(KeyPtr && key_ptr, iterator & it, bool & inserted, size_t)
+    void emplacePtr(KeyPtr && key_ptr, MappedPtr & it, bool & inserted, size_t)
     {
         emplace(*key_ptr, it, inserted);
     }

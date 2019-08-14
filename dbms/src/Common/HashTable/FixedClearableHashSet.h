@@ -10,6 +10,7 @@ struct FixedClearableHashTableCell
     using State = ClearableHashSetState;
 
     using value_type = Key;
+    using mapped_type = void;
     UInt32 version;
 
     FixedClearableHashTableCell() {}
@@ -18,7 +19,7 @@ struct FixedClearableHashTableCell
     bool isZero(const State & state) const { return version != state.version; }
     void setZero() { version = 0; }
     static constexpr bool need_zero_value_storage = false;
-    void setMapped(const value_type & /*value*/) {}
+    void * getMapped() { return this; }
 
     struct CellExt
     {

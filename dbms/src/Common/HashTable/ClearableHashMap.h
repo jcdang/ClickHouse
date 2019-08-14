@@ -32,14 +32,14 @@ public:
 
     mapped_type & operator[](Key x)
     {
-        typename ClearableHashMap::iterator it;
+        typename ClearableHashMap::MappedPtr it;
         bool inserted;
         this->emplace(x, it, inserted);
 
         if (inserted)
-            new(&it->getSecond()) mapped_type();
+            new(it) mapped_type();
 
-        return it->getSecond();
+        return *it;
     }
 
     void clear()

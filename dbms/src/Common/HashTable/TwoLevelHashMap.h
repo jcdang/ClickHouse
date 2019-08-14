@@ -31,14 +31,14 @@ public:
 
     mapped_type & ALWAYS_INLINE operator[](Key x)
     {
-        typename TwoLevelHashMapTable::iterator it;
+        typename TwoLevelHashMapTable::MappedPtr it;
         bool inserted;
         this->emplace(x, it, inserted);
 
         if (inserted)
-            new(&it->getSecond()) mapped_type();
+            new(it) mapped_type();
 
-        return it->getSecond();
+        return *it;
     }
 };
 

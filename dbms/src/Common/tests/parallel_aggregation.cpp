@@ -76,20 +76,20 @@ void aggregate1(Map & map, Source::const_iterator begin, Source::const_iterator 
 
 void aggregate12(Map & map, Source::const_iterator begin, Source::const_iterator end)
 {
-    Map::iterator found;
+    Map::MappedPtr found = nullptr;
     auto prev_it = end;
     for (auto it = begin; it != end; ++it)
     {
         if (*it == *prev_it)
         {
-            ++found->getSecond();
+            ++*found;
             continue;
         }
         prev_it = it;
 
         bool inserted;
         map.emplace(*it, found, inserted);
-        ++found->getSecond();
+        ++*found;
     }
 }
 
@@ -101,20 +101,20 @@ void aggregate2(MapTwoLevel & map, Source::const_iterator begin, Source::const_i
 
 void aggregate22(MapTwoLevel & map, Source::const_iterator begin, Source::const_iterator end)
 {
-    MapTwoLevel::iterator found;
+    MapTwoLevel::MappedPtr found = nullptr;
     auto prev_it = end;
     for (auto it = begin; it != end; ++it)
     {
         if (*it == *prev_it)
         {
-            ++found->getSecond();
+            ++*found;
             continue;
         }
         prev_it = it;
 
         bool inserted;
         map.emplace(*it, found, inserted);
-        ++found->getSecond();
+        ++*found;
     }
 }
 
@@ -160,10 +160,10 @@ void aggregate33(Map & local_map, Map & global_map, Mutex & mutex, Source::const
 
     for (auto it = begin; it != end; ++it)
     {
-        Map::iterator found;
+        Map::MappedPtr found;
         bool inserted;
         local_map.emplace(*it, found, inserted);
-        ++found->getSecond();
+        ++*found;
 
         if (inserted && local_map.size() == threshold)
         {

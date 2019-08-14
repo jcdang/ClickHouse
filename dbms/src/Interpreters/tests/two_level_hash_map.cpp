@@ -60,15 +60,15 @@ int main(int argc, char ** argv)
         using Map = TwoLevelHashTable<Key, HashMapCell<Key, Value, DefaultHash<Key>>, DefaultHash<Key>, HashTableGrower<8>, HashTableAllocator>;
 
         Map map;
-        Map::iterator it;
+        Map::MappedPtr it;
         bool inserted;
 
         for (size_t i = 0; i < n; ++i)
         {
             map.emplace(data[i], it, inserted);
             if (inserted)
-                it->getSecond() = 0;
-            ++it->getSecond();
+                *it = 0;
+            ++*it;
         }
 
         watch.stop();
@@ -96,15 +96,15 @@ int main(int argc, char ** argv)
         //using Map = HashMap<Key, Value, UniquesHashSetDefaultHash>;
 
         Map map;
-        Map::iterator it;
+        Map::MappedPtr it;
         bool inserted;
 
         for (size_t i = 0; i < n; ++i)
         {
             map.emplace(i, it, inserted);
             if (inserted)
-                it->getSecond() = 0;
-            ++it->getSecond();
+                *it = 0;
+            ++*it;
         }
 
         watch.stop();

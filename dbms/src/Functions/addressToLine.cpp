@@ -133,13 +133,13 @@ private:
 
     StringRef implCached(uintptr_t addr)
     {
-        Map::iterator it;
+        Map::MappedPtr it;
         bool inserted;
         std::lock_guard lock(mutex);
         map.emplace(addr, it, inserted);
         if (inserted)
-            it->getSecond() = impl(addr);
-        return it->getSecond();
+            *it = impl(addr);
+        return *it;
     }
 };
 

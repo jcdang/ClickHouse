@@ -46,14 +46,14 @@ struct AggregateIndependent
             {
                 for (auto it = begin; it != end; ++it)
                 {
-                    typename Map::iterator place;
+                    typename Map::MappedPtr place;
                     bool inserted;
                     map.emplace(*it, place, inserted);
 
                     if (inserted)
-                        creator(place->getSecond());
+                        creator(*place);
                     else
-                        updater(place->getSecond());
+                        updater(*place);
                 }
             });
         }
@@ -87,13 +87,13 @@ struct AggregateIndependentWithSequentialKeysOptimization
 
             pool.schedule([&, begin, end]()
             {
-                typename Map::iterator place;
+                typename Map::MappedPtr place = nullptr;
                 Key prev_key {};
                 for (auto it = begin; it != end; ++it)
                 {
                     if (it != begin && *it == prev_key)
                     {
-                        updater(place->getSecond());
+                        updater(*place);
                         continue;
                     }
                     prev_key = *it;
@@ -102,9 +102,9 @@ struct AggregateIndependentWithSequentialKeysOptimization
                     map.emplace(*it, place, inserted);
 
                     if (inserted)
-                        creator(place->getSecond());
+                        creator(*place);
                     else
-                        updater(place->getSecond());
+                        updater(*place);
                 }
             });
         }

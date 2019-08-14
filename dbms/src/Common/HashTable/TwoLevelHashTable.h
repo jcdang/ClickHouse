@@ -83,6 +83,7 @@ protected:
 public:
     using key_type = typename Impl::key_type;
     using value_type = typename Impl::value_type;
+    using MappedPtr = typename Impl::MappedPtr;
 
     Impl impls[NUM_BUCKETS];
 
@@ -206,15 +207,15 @@ public:
 
 
     /// Insert a value. In the case of any more complex values, it is better to use the `emplace` function.
-    std::pair<iterator, bool> ALWAYS_INLINE insert(const value_type & x)
+    std::pair<MappedPtr, bool> ALWAYS_INLINE insert(const value_type & x)
     {
         size_t hash_value = hash(Cell::getKey(x));
 
-        std::pair<iterator, bool> res;
+        std::pair<MappedPtr, bool> res;
         emplace(Cell::getKey(x), res.first, res.second, hash_value);
 
         if (res.second)
-            res.first.getPtr()->setMapped(x);
+            setMapped(res.first, x);
 
         return res;
     }
@@ -236,13 +237,13 @@ public:
       *     new(&it->second) Mapped(value);
       */
     template <typename KeyPtr>
-    void ALWAYS_INLINE emplacePtr(KeyPtr && key_ptr, iterator & it, bool & inserted)
+    void ALWAYS_INLINE emplacePtr(KeyPtr && key_ptr, MappedPtr & it, bool & inserted)
     {
         size_t hash_value = hash(*key_ptr);
         emplacePtr(key_ptr, it, inserted, hash_value);
     }
 
-    void ALWAYS_INLINE emplace(Key key, iterator & it, bool & inserted)
+    void ALWAYS_INLINE emplace(Key key, MappedPtr & it, bool & inserted)
     {
         emplacePtr(NoopKeyPtr(key), it, inserted);
     }
@@ -250,16 +251,16 @@ public:
 
     /// Same, but with a precalculated values of hash function.
     template <typename KeyPtr>
-    void ALWAYS_INLINE emplacePtr(KeyPtr && key_ptr, iterator & it,
+    void ALWAYS_INLINE emplacePtr(KeyPtr && key_ptr, MappedPtr & it,
                                   bool & inserted, size_t hash_value)
     {
         size_t buck = getBucketFromHash(hash_value);
-        typename Impl::iterator impl_it;
+        typename Impl::MappedPtr impl_it;
         impls[buck].emplacePtr(key_ptr, impl_it, inserted, hash_value);
-        it = iterator(this, buck, impl_it);
+        it = impl_it;
     }
 
-    void ALWAYS_INLINE emplace(Key key, iterator & it, bool & inserted, size_t hash_value)
+    void ALWAYS_INLINE emplace(Key key, MappedPtr & it, bool & inserted, size_t hash_value)
     {
         emplacePtr(NoopKeyPtr(key), it, inserted, hash_value);
     }
