@@ -81,6 +81,8 @@ namespace
         template <typename T>
         static bool isZero(const T &, const State & /*state*/)
         {
+            /// Careful: this probably uses SFINAE to redefine isZero for all types
+            /// except the IndexType, for which the default ZeroTraits::isZero is used.
             static_assert(!std::is_same_v<typename std::decay<T>::type, typename std::decay<IndexType>::type>);
             return false;
         }
@@ -122,18 +124,84 @@ namespace
 
 
     template <typename Key, typename Cell, typename Hash>
-    class HashTableWithPublicState : public HashTable<Key, Cell, Hash, HashTableGrower<>, HashTableAllocator>
+    class ReverseIndexHashTableBase : public HashTable<Key, Cell, Hash, HashTableGrower<>, HashTableAllocator>
     {
         using State = typename Cell::State;
         using Base = HashTable<Key, Cell, Hash, HashTableGrower<>, HashTableAllocator>;
 
     public:
         using Base::Base;
+        using iterator = typename Base::iterator;
+        using MappedPtr = typename Base::MappedPtr;
         State & getState() { return *this; }
+
+
+        /// Here follows a special hack-ish interface for ReverseIndex.
+        ///
+        /// ReverseIndex uses the hash table in a most unique way that is unlike all other
+        /// users, so we have a separate interface for it, that works only for a plain
+        /// hash table. Hopefully we will be able to straighten it someday, which will
+        /// also allow us to remove a cyclic dependency between HashTable and its Cell.
+        /// This dependency was probably an unfortunate accident when it started, but surely
+        /// enough it got reused as an important load-bearing crutch for the ReverseIndex.
+        template <typename ObjectToCompareWith>
+        size_t ALWAYS_INLINE reverseIndexFindCell(const ObjectToCompareWith & x,
+            size_t hash_value, size_t place_value) const
+        {
+            while (!this->buf[place_value].isZero(*this)
+                   && !this->buf[place_value].keyEquals(x, hash_value, *this))
+            {
+                place_value = this->grower.next(place_value);
+            }
+
+            return place_value;
+        }
+
+        template <typename ObjectToCompareWith>
+        void ALWAYS_INLINE reverseIndexEmplaceNonZero(const Key & key, MappedPtr & it,
+            bool & inserted, size_t hash_value, const ObjectToCompareWith & object)
+        {
+            size_t place_value = reverseIndexFindCell(object, hash_value,
+                  this->grower.place(hash_value));
+            // emplaceNonZeroImpl() might need to re-find the cell if the table grows,
+            // but it will find it correctly by the key alone, so we don't have to
+            // pass it the 'object'.
+            this->emplaceNonZeroImpl(place_value, NoopKeyPtr(key), it, inserted, hash_value);
+        }
+
+        /// Searches position by object.
+        template <typename ObjectToCompareWith>
+        void ALWAYS_INLINE reverseIndexEmplace(Key key, iterator & it, bool & inserted,
+            size_t hash_value, const ObjectToCompareWith& object)
+        {
+            MappedPtr mapped = nullptr;
+            static_assert(std::is_same<MappedPtr, void *>::value,
+                          "Wrong cell type for ReverseIndex");
+
+            if (!this->emplaceIfZero(key, mapped, inserted, hash_value))
+            {
+                reverseIndexEmplaceNonZero(key, mapped, inserted, hash_value, object);
+            }
+            assert(mapped != nullptr);
+            it = iterator(this, reinterpret_cast<Cell *>(mapped));
+        }
+
+        template <typename ObjectToCompareWith>
+        iterator ALWAYS_INLINE reverseIndexFind(ObjectToCompareWith x, size_t hash_value)
+        {
+            if (Cell::isZero(x, *this))
+                return this->hasZero() ? this->iteratorToZero() : this->end();
+
+            size_t place_value = reverseIndexFindCell(x, hash_value,
+                                    this->grower.place(hash_value));
+            return !this->buf[place_value].isZero(*this)
+                    ? iterator(this, &this->buf[place_value])
+                    : this->end();
+        }
     };
 
     template <typename IndexType, typename ColumnType, bool has_base_index>
-    class ReverseIndexStringHashTable : public HashTableWithPublicState<
+    class ReverseIndexStringHashTable : public ReverseIndexHashTableBase<
             IndexType,
             ReverseIndexHashTableCell<
                     IndexType,
@@ -144,7 +212,7 @@ namespace
                     has_base_index>,
             ReverseIndexHash>
     {
-        using Base = HashTableWithPublicState<
+        using Base = ReverseIndexHashTableBase<
                 IndexType,
                 ReverseIndexHashTableCell<
                         IndexType,
@@ -166,7 +234,7 @@ namespace
     };
 
     template <typename IndexType, typename ColumnType, bool has_base_index>
-    class ReverseIndexNumberHashTable : public HashTableWithPublicState<
+    class ReverseIndexNumberHashTable : public ReverseIndexHashTableBase<
             IndexType,
             ReverseIndexHashTableCell<
                     IndexType,
@@ -177,7 +245,7 @@ namespace
                     has_base_index>,
             ReverseIndexHash>
     {
-        using Base = HashTableWithPublicState<
+        using Base = ReverseIndexHashTableBase<
                 IndexType,
                 ReverseIndexHashTableCell<
                         IndexType,
@@ -356,7 +424,7 @@ void ReverseIndex<IndexType, ColumnType>::buildIndex()
         else
             hash = getHash(column->getDataAt(row));
 
-        index->emplace(row + base_index, iterator, inserted, hash, column->getDataAt(row));
+        index->reverseIndexEmplace(row + base_index, iterator, inserted, hash, column->getDataAt(row));
 
         if (!inserted)
             throw Exception("Duplicating keys found in ReverseIndex.", ErrorCodes::LOGICAL_ERROR);
@@ -401,7 +469,7 @@ UInt64 ReverseIndex<IndexType, ColumnType>::insert(const StringRef & data)
     else
         column->insertData(data.data, data.size);
 
-    index->emplace(num_rows + base_index, iterator, inserted, hash, data);
+    index->reverseIndexEmplace(num_rows + base_index, iterator, inserted, hash, data);
 
     if constexpr (use_saved_hash)
     {
@@ -414,7 +482,7 @@ UInt64 ReverseIndex<IndexType, ColumnType>::insert(const StringRef & data)
             column->popBack(1);
     }
 
-    return iterator->getValue();
+    return iterator->getKey();
 }
 
 template <typename IndexType, typename ColumnType>
@@ -427,7 +495,7 @@ UInt64 ReverseIndex<IndexType, ColumnType>::getInsertionPoint(const StringRef & 
     IteratorType iterator;
 
     auto hash = getHash(data);
-    iterator = index->find(data, hash);
+    iterator = index->reverseIndexFind(data, hash);
 
     return iterator == index->end() ? size() + base_index : iterator->getValue();
 }
