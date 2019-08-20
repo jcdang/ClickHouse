@@ -183,12 +183,19 @@ protected:
 
         if constexpr (consecutive_keys_optimization)
         {
-            cache.value = it->getValue();
             cache.found = true;
             cache.empty = false;
 
             if constexpr (has_mapped)
+            {
+                cache.value.first = *key_ptr;
+                cache.value.second = it->getSecond();
                 cached = &cache.value.second;
+            }
+            else
+            {
+                cache.value = *key_ptr;
+            }
         }
 
         if constexpr (has_mapped)
@@ -219,14 +226,17 @@ protected:
             cache.found = found;
             cache.empty = false;
 
-            if (found)
-                cache.value = it->getValue();
+            if constexpr (has_mapped)
+            {
+                cache.value.first = key;
+                if (found)
+                {
+                    cache.value.second = it->getSecond();
+                }
+            }
             else
             {
-                if constexpr (has_mapped)
-                    cache.value.first = key;
-                else
-                    cache.value = key;
+                cache.value = key;
             }
         }
 
