@@ -144,6 +144,7 @@ public:
     using key_type = Key;
     using value_type = typename Cell::value_type;
     using MappedPtr = typename Cell::mapped_type *;
+    using ConstMappedPtr = const typename Cell::mapped_type *;
 
     size_t hash(const Key & x) const { return x; }
 
@@ -310,25 +311,24 @@ public:
         emplace(*key_ptr, it, inserted);
     }
 
-
-    iterator ALWAYS_INLINE find(Key x)
+    MappedPtr ALWAYS_INLINE find(Key x)
     {
-        return !buf[x].isZero(*this) ? iterator(this, &buf[x]) : end();
+        return !buf[x].isZero(*this) ? buf[x].getMapped() : nullptr;
     }
 
-    const_iterator ALWAYS_INLINE find(Key x) const
+    ConstMappedPtr ALWAYS_INLINE find(Key x) const
     {
-        return !buf[x].isZero(*this) ? const_iterator(this, &buf[x]) : end();
+        return const_cast<std::decay_t<decltype(*this)> *>(this)->find(x);
     }
 
-    iterator ALWAYS_INLINE find(Key, size_t hash_value)
+    MappedPtr ALWAYS_INLINE find(Key, size_t hash_value)
     {
-        return !buf[hash_value].isZero(*this) ? iterator(this, &buf[hash_value]) : end();
+        return !buf[hash_value].isZero(*this) ? buf[hash_value].getMapped() : nullptr;
     }
 
-    const_iterator ALWAYS_INLINE find(Key, size_t hash_value) const
+    ConstMappedPtr ALWAYS_INLINE find(Key key, size_t hash_value) const
     {
-        return !buf[hash_value].isZero(*this) ? const_iterator(this, &buf[hash_value]) : end();
+        return const_cast<std::decay_t<decltype(*this)> *>(this)->find(key, hash_value);
     }
 
     bool ALWAYS_INLINE has(Key x) const { return !buf[x].isZero(*this); }

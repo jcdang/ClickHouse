@@ -84,6 +84,7 @@ public:
     using key_type = typename Impl::key_type;
     using value_type = typename Impl::value_type;
     using MappedPtr = typename Impl::MappedPtr;
+    using ConstMappedPtr = typename Impl::ConstMappedPtr;
 
     Impl impls[NUM_BUCKETS];
 
@@ -265,30 +266,19 @@ public:
         emplacePtr(NoopKeyPtr(key), it, inserted, hash_value);
     }
 
-    iterator ALWAYS_INLINE find(Key x, size_t hash_value)
+    MappedPtr ALWAYS_INLINE find(Key x, size_t hash_value)
     {
         size_t buck = getBucketFromHash(hash_value);
-
-        typename Impl::iterator found = impls[buck].find(x, hash_value);
-        return found != impls[buck].end()
-            ? iterator(this, buck, found)
-            : end();
+        return impls[buck].find(x, hash_value);
     }
 
-
-    const_iterator ALWAYS_INLINE find(Key x, size_t hash_value) const
+    ConstMappedPtr ALWAYS_INLINE find(Key x, size_t hash_value) const
     {
-        size_t buck = getBucketFromHash(hash_value);
-
-        typename Impl::const_iterator found = impls[buck].find(x, hash_value);
-        return found != impls[buck].end()
-            ? const_iterator(this, buck, found)
-            : end();
+        return const_cast<std::decay_t<decltype(*this)> *>(this)->find(x, hash_value);
     }
 
-
-    iterator ALWAYS_INLINE find(Key x) { return find(x, hash(x)); }
-    const_iterator ALWAYS_INLINE find(Key x) const { return find(x, hash(x)); }
+    MappedPtr ALWAYS_INLINE find(Key x) { return find(x, hash(x)); }
+    ConstMappedPtr ALWAYS_INLINE find(Key x) const { return find(x, hash(x)); }
 
 
     void write(DB::WriteBuffer & wb) const

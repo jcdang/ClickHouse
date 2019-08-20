@@ -218,20 +218,19 @@ protected:
             }
         }
 
-        auto it = data.find(key);
-        bool found = it != data.end();
+        auto mapped_ptr = data.find(key);
 
         if constexpr (consecutive_keys_optimization)
         {
-            cache.found = found;
+            cache.found = mapped_ptr != nullptr;
             cache.empty = false;
 
             if constexpr (has_mapped)
             {
                 cache.value.first = key;
-                if (found)
+                if (mapped_ptr)
                 {
-                    cache.value.second = it->getSecond();
+                    cache.value.second = *mapped_ptr;
                 }
             }
             else
@@ -241,9 +240,9 @@ protected:
         }
 
         if constexpr (has_mapped)
-            return FindResult(found ? &it->getSecond() : nullptr, found);
+            return FindResult(mapped_ptr, mapped_ptr != nullptr);
         else
-            return FindResult(found);
+            return FindResult(mapped_ptr != nullptr);
     }
 };
 

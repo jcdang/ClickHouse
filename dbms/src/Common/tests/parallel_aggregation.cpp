@@ -135,10 +135,10 @@ void aggregate3(Map & local_map, Map & global_map, Mutex & mutex, Source::const_
 
     for (auto it = begin; it != end; ++it)
     {
-        Map::iterator found = local_map.find(*it);
+        auto found = local_map.find(*it);
 
-        if (found != local_map.end())
-            ++found->getSecond();
+        if (found)
+            ++*found;
         else if (local_map.size() < threshold)
             ++local_map[*it];    /// TODO You could do one lookup, not two.
         else
@@ -195,10 +195,10 @@ void aggregate4(Map & local_map, MapTwoLevel & global_map, Mutex * mutexes, Sour
         {
             for (; it != block_end; ++it)
             {
-                Map::iterator found = local_map.find(*it);
+                auto found = local_map.find(*it);
 
-                if (found != local_map.end())
-                    ++found->getSecond();
+                if (found)
+                    ++*found;
                 else
                 {
                     size_t hash_value = global_map.hash(*it);

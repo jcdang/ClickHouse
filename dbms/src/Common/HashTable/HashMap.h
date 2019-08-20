@@ -173,11 +173,11 @@ public:
     {
         for (auto it = this->begin(), end = this->end(); it != end; ++it)
         {
-            decltype(it) res_it = that.find(it->getFirst(), it.getHash());
-            if (res_it == that.end())
+            auto res_it = that.find(it->getFirst(), it.getHash());
+            if (!res_it)
                 func(it->getSecond(), it->getSecond(), false);
             else
-                func(res_it->getSecond(), it->getSecond(), true);
+                func(*res_it, it->getSecond(), true);
         }
     }
 

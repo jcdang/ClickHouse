@@ -526,6 +526,7 @@ public:
     using key_type = Key;
     using value_type = typename Cell::value_type;
     using MappedPtr = typename Cell::mapped_type *;
+    using ConstMappedPtr = const typename Cell::mapped_type *;
 
     size_t hash(const Key & x) const { return Hash::operator()(x); }
 
@@ -845,47 +846,34 @@ public:
             resize();
     }
 
-    iterator ALWAYS_INLINE find(Key x)
+
+    MappedPtr ALWAYS_INLINE find(Key x)
     {
         if (Cell::isZero(x, *this))
-            return this->hasZero() ? iteratorToZero() : end();
+            return this->hasZero() ? this->zeroValue()->getMapped() : nullptr;
 
         size_t hash_value = hash(x);
         size_t place_value = findCell(x, hash_value, grower.place(hash_value));
-        return !buf[place_value].isZero(*this) ? iterator(this, &buf[place_value]) : end();
+        return !buf[place_value].isZero(*this)
+                ? buf[place_value].getMapped()
+                : nullptr;
     }
 
+    ConstMappedPtr ALWAYS_INLINE find(Key x) const
+    {
+        return const_cast<std::decay_t<decltype(*this)> *>(this)->find(x);
+    }
 
-    const_iterator ALWAYS_INLINE find(Key x) const
+    MappedPtr ALWAYS_INLINE find(Key x, size_t hash_value)
     {
         if (Cell::isZero(x, *this))
-            return this->hasZero() ? iteratorToZero() : end();
-
-        size_t hash_value = hash(x);
-        size_t place_value = findCell(x, hash_value, grower.place(hash_value));
-        return !buf[place_value].isZero(*this) ? const_iterator(this, &buf[place_value]) : end();
-    }
-
-
-    iterator ALWAYS_INLINE find(Key x, size_t hash_value)
-    {
-        if (Cell::isZero(x, *this))
-            return this->hasZero() ? iteratorToZero() : end();
+            return this->hasZero() ? this->zeroValue()->getMapped() : nullptr;
 
         size_t place_value = findCell(x, hash_value, grower.place(hash_value));
-        return !buf[place_value].isZero(*this) ? iterator(this, &buf[place_value]) : end();
+        return !buf[place_value].isZero(*this)
+                ? buf[place_value].getMapped()
+                : nullptr;
     }
-
-
-    const_iterator ALWAYS_INLINE find(Key x, size_t hash_value) const
-    {
-        if (Cell::isZero(x, *this))
-            return this->hasZero() ? iteratorToZero() : end();
-
-        size_t place_value = findCell(x, hash_value, grower.place(hash_value));
-        return !buf[place_value].isZero(*this) ? const_iterator(this, &buf[place_value]) : end();
-    }
-
 
     bool ALWAYS_INLINE has(Key x) const
     {

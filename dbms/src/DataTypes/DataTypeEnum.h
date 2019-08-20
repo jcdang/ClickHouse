@@ -77,11 +77,11 @@ public:
 
     FieldType getValue(StringRef field_name) const
     {
-        const auto it = name_to_value_map.find(field_name);
-        if (it == std::end(name_to_value_map))
+        const auto value = name_to_value_map.find(field_name);
+        if (!value)
             throw Exception{"Unknown element '" + field_name.toString() + "' for type " + getName(), ErrorCodes::LOGICAL_ERROR};
 
-        return it->getSecond();
+        return *value;
     }
 
     Field castToName(const Field & value_or_name) const override;

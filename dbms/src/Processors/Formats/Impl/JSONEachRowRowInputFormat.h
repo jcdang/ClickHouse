@@ -58,7 +58,7 @@ private:
     std::vector<UInt8> read_columns;
 
     /// Hash table match `field name -> position in the block`. NOTE You can use perfect hash map.
-    using NameMap = HashMap<StringRef, size_t, StringRefHash>;
+    using NameMap = std::unordered_map<StringRef, size_t, StringRefHash>;
     NameMap name_map;
 
     /// Cached search results for previous row (keyed as index in JSON object) - used as a hint.
