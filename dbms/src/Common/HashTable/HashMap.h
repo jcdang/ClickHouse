@@ -182,7 +182,7 @@ public:
     void forEachValue(Func && func)
     {
         for (auto & v : *this)
-            func(v);
+            func(v.getFirst(), v.getSecond());
     }
 
     template <typename Func>

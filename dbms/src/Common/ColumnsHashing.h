@@ -60,12 +60,6 @@ struct HashMethodOneNumber
 
     /// Is used for default implementation in HashMethodBase.
     NoopKeyPtr<FieldType> getKeyPtr(size_t row, Arena &) const { return unalignedLoad<FieldType>(vec + row * sizeof(FieldType)); }
-
-    /// Get StringRef from value which can be inserted into column.
-    static StringRef getValueRef(const Value & value)
-    {
-        return StringRef(reinterpret_cast<const char *>(&value.first), sizeof(value.first));
-    }
 };
 
 
@@ -97,8 +91,6 @@ struct HashMethodString
     {
         return KeyPtr(StringRef(chars + offsets[row - 1], offsets[row] - offsets[row - 1] - 1), pool);
     }
-
-    static StringRef getValueRef(const Value & value) { return value.first; }
 
 protected:
     friend class columns_hashing_impl::HashMethodBase<Self, Value, Mapped, use_cache>;
@@ -133,8 +125,6 @@ struct HashMethodFixedString
     {
         return KeyPtr(StringRef(&(*chars)[row * n], n), pool);
     }
-
-    static StringRef getValueRef(const Value & value) { return value.first; }
 
 protected:
     friend class columns_hashing_impl::HashMethodBase<Self, Value, Mapped, use_cache>;
@@ -551,11 +541,6 @@ struct HashMethodHashed
     ALWAYS_INLINE NoopKeyPtr<Key> getKeyPtr(size_t row, Arena &) const
     {
         return hash128(row, key_columns.size(), key_columns);
-    }
-
-    static ALWAYS_INLINE StringRef getValueRef(const Value & value)
-    {
-        return StringRef(reinterpret_cast<const char *>(&value.first), sizeof(value.first));
     }
 };
 

@@ -1141,13 +1141,13 @@ void NO_INLINE Aggregator::convertToBlockImplFinal(
         }
     }
 
-    data.forEachValue([&](const auto & value)
+    data.forEachValue([&](auto && key, auto & mapped)
     {
-        method.insertKeyIntoColumns(value.getValue(), key_columns, key_sizes);
+        method.insertKeyIntoColumns(key, key_columns, key_sizes);
 
         for (size_t i = 0; i < params.aggregates_size; ++i)
             aggregate_functions[i]->insertResultInto(
-                        value.getSecond() + offsets_of_aggregate_states[i],
+                        mapped + offsets_of_aggregate_states[i],
                         *final_aggregate_columns[i]);
     });
 
@@ -1172,15 +1172,15 @@ void NO_INLINE Aggregator::convertToBlockImplNotFinal(
         }
     }
 
-    data.forEachValue([&](auto & value)
+    data.forEachValue([&](auto && key, auto & mapped)
     {
-        method.insertKeyIntoColumns(value.getValue(), key_columns, key_sizes);
+        method.insertKeyIntoColumns(key, key_columns, key_sizes);
 
         /// reserved, so push_back does not throw exceptions
         for (size_t i = 0; i < params.aggregates_size; ++i)
-            aggregate_columns[i]->push_back(value.getSecond() + offsets_of_aggregate_states[i]);
+            aggregate_columns[i]->push_back(mapped + offsets_of_aggregate_states[i]);
 
-        value.getSecond() = nullptr;
+        mapped = nullptr;
     });
 }
 
