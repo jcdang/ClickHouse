@@ -154,7 +154,9 @@ public:
             CurrentMemoryTracker::realloc(old_size, new_size);
 
             // On apple and freebsd self-implemented mremap used (common/mremap.h)
-            buf = clickhouse_mremap(buf, old_size, new_size, MREMAP_MAYMOVE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            buf = clickhouse_mremap(buf, old_size, new_size, MREMAP_MAYMOVE,
+                                    PROT_READ | PROT_WRITE,
+                                    MAP_POPULATE | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
             if (MAP_FAILED == buf)
                 DB::throwFromErrno("Allocator: Cannot mremap memory chunk from " + formatReadableSizeWithBinarySuffix(old_size) + " to " + formatReadableSizeWithBinarySuffix(new_size) + ".", DB::ErrorCodes::CANNOT_MREMAP);
 
@@ -200,7 +202,14 @@ private:
                 throw DB::Exception("Too large alignment " + formatReadableSizeWithBinarySuffix(alignment) + ": more than page size when allocating "
                     + formatReadableSizeWithBinarySuffix(size) + ".", DB::ErrorCodes::BAD_ARGUMENTS);
 
-            buf = mmap(Hint::mmap_hint(), size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            // Freshly mmapped pages are copy-on-write references to a global zero
+            // page. On write access, a page fault occurs, and an actual writable
+            // page is allocated. We are going to use this memory soon, so pre-fault
+            // the pages by passing MAP_POPULATE. This takes some time, but
+            // should be faster overall than having a hot loop interrupted by
+            // page faults.
+            buf = mmap(Hint::mmap_hint(), size, PROT_READ | PROT_WRITE,
+                       MAP_POPULATE | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
             if (MAP_FAILED == buf)
                 DB::throwFromErrno("Allocator: Cannot mmap " + formatReadableSizeWithBinarySuffix(size) + ".", DB::ErrorCodes::CANNOT_ALLOCATE_MEMORY);
 
