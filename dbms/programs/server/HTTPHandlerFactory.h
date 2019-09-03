@@ -6,6 +6,7 @@
 #include <common/logger_useful.h>
 #include "IServer.h"
 #include "HTTPHandler.h"
+#include "HTTPStreamHandler.h"
 #include "InterserverIOHTTPHandler.h"
 #include "NotFoundHandler.h"
 #include "PingRequestHandler.h"
@@ -42,19 +43,26 @@ public:
             << ", Content Type: " << request.getContentType()
             << ", Transfer Encoding: " << request.getTransferEncoding());
 
-        const auto & uri = request.getURI();
+        const auto & uri_str = request.getURI();
+        Poco::URI  uri = Poco::URI(uri_str);
+        const auto & path = uri.getPath();
 
         if (request.getMethod() == Poco::Net::HTTPRequest::HTTP_GET || request.getMethod() == Poco::Net::HTTPRequest::HTTP_HEAD)
         {
-            if (uri == "/")
+            if (path == "/")
                 return new RootRequestHandler(server);
-            if (uri == "/ping")
+            if (path == "/ping")
                 return new PingRequestHandler(server);
-            else if (startsWith(uri, "/replicas_status"))
+            else if (path == "/replicas_status")
                 return new ReplicasStatusHandler(server.context());
         }
 
-        if (uri.find('?') != std::string::npos || request.getMethod() == Poco::Net::HTTPRequest::HTTP_POST)
+        if (path == "/stream")
+        {
+            return new HTTPStreamHandler(server);
+        }
+
+        if (uri_str.find('?') != std::string::npos || request.getMethod() == Poco::Net::HTTPRequest::HTTP_POST)
         {
             return new HandlerType(server);
         }

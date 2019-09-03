@@ -1,5 +1,6 @@
 set(CLICKHOUSE_SERVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/HTTPHandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/HTTPStreamHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/InterserverIOHTTPHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MetricsTransmitter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/NotFoundHandler.cpp
