@@ -14,6 +14,7 @@ void DB::HTTPQueryState::sendEvent(std::string & event_name, char *start, int le
 
 void DB::HTTPQueryState::sendEvent(std::string & event_name, std::string & data)
 {
+    std::lock_guard lock(mutex);
     std::ostream & first = flush_streams.front().get();
 
     if (!event_name.empty())

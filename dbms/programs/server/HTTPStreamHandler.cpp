@@ -1,18 +1,24 @@
-#include <Poco/DeflatingStream.h>
-#include "IServer.h"
 #include "HTTPStreamHandler.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-namespace DB {
+#include <Poco/DeflatingStream.h>
+#include <Common/setThreadName.h>
 
-HTTPStreamHandler::HTTPStreamHandler(IServer & server_) : server(server_)
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+DB::HTTPStreamHandler::HTTPStreamHandler(IServer & server_)
+    : server(server_)
+    , log(&Logger::get("HTTPStreamHandler"))
 {
 
 }
 
-void HTTPStreamHandler::handleRequest(Poco::Net::HTTPServerRequest & request, Poco::Net::HTTPServerResponse & response) 
+void DB::HTTPStreamHandler::handleRequest(Poco::Net::HTTPServerRequest & request, Poco::Net::HTTPServerResponse & response)
 {
+    setThreadName("HTTPStream");
+    Context context = server.context();
+    Settings & settings = context.getSettingsRef();
+
     if (!validate(request, response)) 
     {
         return;
@@ -32,7 +38,7 @@ void HTTPStreamHandler::handleRequest(Poco::Net::HTTPServerRequest & request, Po
     response.set("Transfer-Encoding", "chunked");
 
     bool compress = false;
-    Poco::DeflatingStreamBuf::StreamType stream_type;
+    Poco::DeflatingStreamBuf::StreamType stream_type = Poco::DeflatingStreamBuf::STREAM_GZIP;
 
     if(request.hasToken("Accept-Encoding", "gzip"))
     {
@@ -60,31 +66,36 @@ void HTTPStreamHandler::handleRequest(Poco::Net::HTTPServerRequest & request, Po
     process(request, query_state);
 }
 
-void HTTPStreamHandler::process(Poco::Net::HTTPServerRequest & request, HTTPQueryState & query_state) {
-
+void DB::HTTPStreamHandler::process(Poco::Net::HTTPServerRequest & request, HTTPQueryState & query_state)
+{
     query_state.sendEvent("summary", "I plan to send\n101\nrows");
-
-
-    query_state.sendEvent( "progress", "0");
-
     query_state.sendEvent("", "col1;col2;col3");
 
-    for (int i = 0; i <= 100; ++i) {
-        query_state.sendEvent("progress", std::to_string(i).c_str());
+    ThreadFromGlobalPool progress_thread([&query_state]
+    {
+        for (int i = 0; i <= 100; ++i)
+        {
+            query_state.sendEvent("progress", std::to_string(i).c_str());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    });
 
-        query_state.sendEvent("", "0,0,0");
+    ThreadFromGlobalPool data_thread([&query_state]
+    {
+        for (int i = 0; i <= 100; ++i)
+        {
+            query_state.sendEvent("", "0,1,0");
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    });
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    progress_thread.join();
+    data_thread.join();
 
     query_state.sendEvent("summary", "Done!");
 }
 
-    bool HTTPStreamHandler::validate(Poco::Net::HTTPServerRequest & request, Poco::Net::HTTPServerResponse & response)
+bool DB::HTTPStreamHandler::validate(Poco::Net::HTTPServerRequest & request, Poco::Net::HTTPServerResponse & response)
 {
     return true;
 }
-
-}
-
-#pragma GCC diagnostic pop
